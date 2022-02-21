@@ -39,16 +39,13 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
             <v-list-item
               class="px-0"
               dense>
-              <v-textarea
-                counter
-                maxlength="1000"
-                auto-grow
-                outlined
-                rows="1"
+              <extended-textarea
+                v-model.trim="poll.question"
+                rows="3"
                 row-height="15"
-                class="custom-textarea mb-3"
-                :placeholder="`${$t('composer.poll.create.drawer.field.question')}`"
-                type="text" />
+                :max-length="MAX_LENGTH"
+                :placeholder="questionPlaceholder"
+                class="custom-poll-textarea pt-0 mb-3" />
             </v-list-item>
             
             <v-list-item
@@ -56,34 +53,13 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
               :key="index"
               class="px-0 d-flex"
               dense>
-              <div class=" float-left mb-8 me-3 removeOptionButton">
-                <v-btn
-                  v-if="option.removable"
-                  icon
-                  @click="removeOption(option)">
-                  <em class="fas fa-trash-alt removeOptionButtonIcon"></em>
-                </v-btn>
-              </div> 
-              <v-textarea
-                counter
-                maxlength="1000"
-                auto-grow
-                outlined
-                rows="1"
+              <extended-textarea
+                v-model.trim="options[index].data"
+                rows="2"
                 row-height="15"
-                class="custom-textarea mb-3"
-                :placeholder="$t('composer.poll.create.drawer.field.option', {0: option.id})"
-                type="text" />
-            </v-list-item>
-
-            <v-list-item
-              class="px-0 d-flex justify-end"
-              dense>
-              <div class="d-flex flex-row ">
-                <a class="text-subtitle-1 font-weight-bold" @click="addOption">
-                  + {{ $t('composer.poll.create.drawer.option.add') }}
-                </a>
-              </div>
+                :max-length="MAX_LENGTH"
+                class="custom-poll-textarea pt-0 mb-3"
+                :placeholder="$t(`composer.poll.create.drawer.field.option${!option.required ? '.optional' : ''}`, {0: option.id})" />
             </v-list-item>
           </v-list>
         </v-form>
@@ -102,6 +78,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
           class="px-8 primary btn no-box-shadow"
           button
           large
+          :disabled="disableCreatePoll"
           @click="createPoll">
           {{ $t('composer.poll.create.drawer.action.create') }}
         </v-btn>
@@ -115,21 +92,28 @@ export default {
 
   data(){
     return {
+      MAX_LENGTH: 1000,
+      poll: {},
       options: [
         {
           id: 1,
-          removable: false,
-          data: {}
+          required: true,
+          data: null
         },
         {
           id: 2,
-          removable: false,
-          data: {}
+          required: true,
+          data: null
         },
         {
           id: 3,
-          removable: true,
-          data: {}
+          required: false,
+          data: null
+        },
+        {
+          id: 4,
+          required: false,
+          data: null
         }
       ]
     };
@@ -141,6 +125,18 @@ export default {
     drawerWidth() {
       return !this.isMobile ? '33%' : '420';
     },
+    checkPollOptionalOptions(){
+      return this.options.slice(-2).every(option => !option.data || option.data.length <= this.MAX_LENGTH );
+    },
+    checkPollAllOptions(){
+      return this.options && this.options.length !== 0 && this.options.slice(0,2).every(option => option.data !== null && option.data !== '' && option.data.length <= this.MAX_LENGTH ) && this.checkPollOptionalOptions;
+    },
+    disableCreatePoll(){
+      return !(Object.values(this.poll).length !== 0 && this.poll.question && this.poll.question.length <= this.MAX_LENGTH && this.checkPollAllOptions);
+    },
+    questionPlaceholder(){
+      return this.$t('composer.poll.create.drawer.field.question');
+    }
   },
   methods: {
     openDrawer(){
@@ -151,19 +147,10 @@ export default {
       this.resetDrawer();
     },
     createPoll(){
-      this.$refs.createPollDrawer.close();
+      this.closeDrawer();
     },
     resetDrawer(){
       //reset drawer fields
-    },
-    addOption(){
-      this.options.push({id: this.options.length + 1, removable: true,data: {}});
-    },
-    removeOption(option){
-      this.options.splice(this.options.indexOf(option), 1);
-      this.options.forEach((element,index) => {
-        element.id = index +1;
-      });
     }
   }
 };
