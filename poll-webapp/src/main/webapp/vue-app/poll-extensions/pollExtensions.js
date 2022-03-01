@@ -16,27 +16,12 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
+
 export function initExtensions() {
-  extensionRegistry.registerExtension('ActivityComposer', 'activity-composer-action', {
-    key: 'poll',
-    rank: 40,
-    resourceBundle: 'locale.portlet.Poll',
-    labelKey: 'composer.poll.create',
-    description: 'composer.poll.create.drawer.description',
-    iconClass: 'createPollComposerIcon',
-    enabled: true,
-    component: {
-      name: 'create-poll-drawer',
-      props: {
-      },
-      model: {
-        value: [],
-        default: []
-      },
-      events: []
-    },
-    onExecute: (createPollDrawerComponent) => {
-      createPollDrawerComponent.openDrawer();
-    }
+  extensionRegistry.registerComponent('ActivityComposerFooterAction', 'activity-composer-footer-action', {
+    id: 'createPollButton',
+    vueComponent: Vue.options.components['create-poll-composer'],
+    rank: 20,
   });
+  
 }

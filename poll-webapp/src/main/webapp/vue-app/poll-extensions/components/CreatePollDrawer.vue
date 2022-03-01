@@ -25,7 +25,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
     disable-pull-to-refresh>
     <template slot="title">
       <div class="createPollDrawerHeader">
-        <span>{{ $t('composer.poll.create') }}</span>
+        <span>{{ $t('composer.poll.create.drawer.label') }}</span>
       </div>
     </template>
     <template slot="content">
@@ -74,10 +74,12 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
               class="px-0"
               dense>
               <select
+                id="pollSelectedDuration"
+                v-model="poll.duration"
                 class="ignore-vuetify-classes poll-select-duration flex-grow-1">
                 <option value="1d">{{ $t('composer.poll.create.drawer.field.duration.oneDay') }}</option>
                 <option value="3d">{{ $t('composer.poll.create.drawer.field.duration.threeDays') }}</option>
-                <option value="1w" selected>{{ $t('composer.poll.create.drawer.field.duration.oneWeek') }}</option>
+                <option value="1w">{{ $t('composer.poll.create.drawer.field.duration.oneWeek') }}</option>
                 <option value="2w">{{ $t('composer.poll.create.drawer.field.duration.twoWeeks') }}</option>
               </select>
             </v-list-item>
@@ -92,7 +94,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
           button
           large
           @click="closeDrawer">
-          {{ $t('composer.poll.create.drawer.action.cancel') }}
+          {{ closeButton }}
         </v-btn>
         <v-btn
           class="px-8 primary btn no-box-shadow"
@@ -100,7 +102,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
           large
           :disabled="disableCreatePoll"
           @click="createPoll">
-          {{ $t('composer.poll.create.drawer.action.create') }}
+          {{ submitButton }}
         </v-btn>
       </div>
     </template>
@@ -110,11 +112,50 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 <script>
 export default {
 
-  data(){
+  data() {
     return {
       MAX_LENGTH: 1000,
       poll: {},
-      options: [
+      options: [],
+      pollCreated: false
+    };
+  },
+  props: {
+    savedPoll: {
+      type: Object,
+      default: null
+    }
+  },
+  computed: {
+    isMobile() {
+      return this.$vuetify.breakpoint.name === 'xs' || this.$vuetify.breakpoint.name === 'sm';
+    },
+    drawerWidth() {
+      return !this.isMobile ? '100%' : '420';
+    },
+    checkPollOptionalOptions() {
+      return this.options.slice(-2).every(option => !option.data || option.data.length <= this.MAX_LENGTH );
+    },
+    checkPollAllOptions() {
+      return this.options && this.options.length !== 0 && this.options.slice(0,2).every(option => option.data !== null && option.data !== '' && option.data.length <= this.MAX_LENGTH ) && this.checkPollOptionalOptions;
+    },
+    disableCreatePoll() {
+      return !(Object.values(this.poll).length !== 0 && this.poll.question && this.poll.question.length <= this.MAX_LENGTH && this.checkPollAllOptions);
+    },
+    questionPlaceholder() {
+      return this.$t('composer.poll.create.drawer.field.question');
+    },
+    submitButton() {
+      return this.$t(`composer.poll.create.drawer.action.${this.pollCreated ? 'update' : 'create'}`);
+    },
+    closeButton() {
+      return this.$t('composer.poll.create.drawer.action.cancel');
+    }
+  },
+  methods: {
+    intializeDrawerFields() {
+      this.poll = {};
+      this.options = [
         {
           id: 1,
           required: true,
@@ -135,43 +176,35 @@ export default {
           required: false,
           data: null
         }
-      ]
-    };
-  },
-  computed: {
-    isMobile() {
-      return this.$vuetify.breakpoint.name === 'xs' || this.$vuetify.breakpoint.name === 'sm';
+      ];
+      this.poll.duration = '1w';
+      this.pollCreated = false;
     },
-    drawerWidth() {
-      return !this.isMobile ? '100%' : '420';
-    },
-    checkPollOptionalOptions(){
-      return this.options.slice(-2).every(option => !option.data || option.data.length <= this.MAX_LENGTH );
-    },
-    checkPollAllOptions(){
-      return this.options && this.options.length !== 0 && this.options.slice(0,2).every(option => option.data !== null && option.data !== '' && option.data.length <= this.MAX_LENGTH ) && this.checkPollOptionalOptions;
-    },
-    disableCreatePoll(){
-      return !(Object.values(this.poll).length !== 0 && this.poll.question && this.poll.question.length <= this.MAX_LENGTH && this.checkPollAllOptions);
-    },
-    questionPlaceholder(){
-      return this.$t('composer.poll.create.drawer.field.question');
-    }
-  },
-  methods: {
-    openDrawer(){
+    openDrawer() {
+      if (!Object.values(this.savedPoll).length) {
+        this.intializeDrawerFields();
+      }
+      else {
+        this.options = JSON.parse(JSON.stringify(this.savedPoll.options));
+        Object.assign(this.poll,JSON.parse(JSON.stringify(this.savedPoll)));
+      }
       this.$refs.createPollDrawer.open();
     },
-    closeDrawer(){
+    closeDrawer() {
       this.$refs.createPollDrawer.close();
-      this.resetDrawer();
     },
-    createPoll(){
-      this.closeDrawer();
+    createPoll() {
+      if (!this.disableCreatePoll) {
+        if (!this.poll.duration) {
+          this.poll.duration = document.getElementById('pollSelectedDuration').value;
+        }
+        this.poll.options = this.options;
+        this.pollCreated = true;
+
+        this.$emit('poll-created', this.poll);
+        this.closeDrawer();
+      }
     },
-    resetDrawer(){
-      //reset drawer fields
-    }
   }
 };
 </script>
