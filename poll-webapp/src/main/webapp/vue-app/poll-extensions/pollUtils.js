@@ -16,18 +16,25 @@
  * along with this program; if not, write to the Free Software Foundation,
  * Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
  */
-import CreatePollDrawer from './components/CreatePollDrawer.vue';
-import CreatePollComposer from './components/CreatePollComposer.vue';
-import PollActivityStream from './components/PollActivityStream.vue';
-import PollActivity from './components/PollActivity.vue';
+export const getRemainingDate = {
+  inDays: (d1, d2) => {
+    const t2 = d2.getTime();
+    const t1 = d1.getTime();
 
-const components = {
-  'create-poll-drawer': CreatePollDrawer,
-  'create-poll-composer': CreatePollComposer,
-  'poll-activity-stream': PollActivityStream,
-  'poll-activity': PollActivity,
+    return parseInt((t2-t1)/(24*60*60*1000));
+  },
+
+  inHours: (d1, d2) => {
+    const t2 = d2.getTime();
+    const t1 = d1.getTime();
+
+    return parseInt((t2-t1)/(60*60*1000));
+  },
+
+  inMunites: (d1, d2) => {
+    const t2 = d2.getTime();
+    const t1 = d1.getTime();
+
+    return parseInt((t2-t1)/(60*1000));
+  }
 };
-
-for (const key in components) {
-  Vue.component(key, components[key]);
-}
