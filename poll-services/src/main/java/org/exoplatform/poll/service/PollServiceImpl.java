@@ -31,7 +31,7 @@ public class PollServiceImpl implements PollService {
   private PollStorage     pollStorage;
 
   private SpaceService    spaceService;
-
+  
   public PollServiceImpl(PollStorage pollStorage, SpaceService spaceService) {
     this.pollStorage = pollStorage;
     this.spaceService = spaceService;
@@ -48,5 +48,14 @@ public class PollServiceImpl implements PollService {
           + poll.getQuestion());
     }
     return pollStorage.createPoll(poll, pollOptions);
+  }
+
+  @Override
+  public Poll getPollById(long pollId) throws IllegalStateException {
+    Poll poll = pollStorage.getPollById(pollId);
+    if (poll == null) {
+      throw new IllegalStateException("Poll with id " + pollId + " does not exist");
+    }
+    return poll;
   }
 }
