@@ -35,8 +35,10 @@ public class PollRestEntity {
 
   private List<PollOptionRestEntity> options;
 
-  private String                     remainingTime;
+  private long                       endDateTime;
 
   private String                     duration;
+
+  private String                     message;
 
 }

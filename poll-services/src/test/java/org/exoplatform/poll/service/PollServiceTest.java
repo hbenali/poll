@@ -18,35 +18,33 @@
  */
 package org.exoplatform.poll.service;
 
-import org.exoplatform.poll.model.Poll;
-import org.exoplatform.poll.model.PollOption;
-
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
 import org.junit.Test;
+
+import org.exoplatform.poll.model.Poll;
+import org.exoplatform.poll.model.PollOption;
 
 import static org.junit.Assert.*;
 
 public class PollServiceTest extends BasePollTest {
-  private Date            startDate  = new Date(1508484583259L);
+  private Date                createdDate = new Date(1508484583259L);
 
-  private Date            endDate    = new Date(1508484583260L);
+  private Date                endDate     = new Date(1508484583260L);
+
+  private final static String MESSAGE     = "Activity title";
 
   @Test
   public void testCreatePoll() throws IllegalAccessException {
     // Given
-    ZonedDateTime startDateTime = startDate.toInstant().atZone(ZoneOffset.UTC);
-    ZonedDateTime endDateTime = endDate.toInstant().atZone(ZoneOffset.UTC);
-    org.exoplatform.services.security.Identity identity = new org.exoplatform.services.security.Identity("testuser1");
-      Poll poll = new Poll();
+    org.exoplatform.services.security.Identity testuser1Identity = new org.exoplatform.services.security.Identity("testuser1");
+    Poll poll = new Poll();
     poll.setQuestion("q1");
-    poll.setCreatedDate(startDateTime);
-    poll.setEndDate(endDateTime);
+    poll.setCreatedDate(createdDate);
+    poll.setEndDate(endDate);
     poll.setCreatorId(Long.parseLong(user1Identity.getId()));
-    Poll createdPoll = new Poll(1, "q1", startDateTime, endDateTime, 1, 1);
     PollOption pollOption = new PollOption();
     pollOption.setDescription("pollOption");
     List<PollOption> options = new ArrayList<>();
@@ -56,23 +54,26 @@ public class PollServiceTest extends BasePollTest {
     spaceService.addRedactor(space, user1Identity.getRemoteId());
 
     // When
-    Poll pollStored = pollService.createPoll(poll, pollOptionList, space.getId(), identity);
-
-    assertNotNull(pollStored);
-    assertEquals(createdPoll.getCreatorId(), pollStored.getCreatorId());
-    assertEquals(createdPoll.getQuestion(), pollStored.getQuestion());
+    Poll createdPoll = pollService.createPoll(poll, pollOptionList, space.getId(), MESSAGE, testuser1Identity);
+    
+    // Then
+    assertNotNull(createdPoll);
+    assertEquals(poll.getCreatorId(), createdPoll.getCreatorId());
+    assertEquals(poll.getQuestion(), createdPoll.getQuestion());
+    assertNotEquals(poll.getActivityId(), createdPoll.getActivityId());
 
     // Given
-    org.exoplatform.services.security.Identity identity1 = new org.exoplatform.services.security.Identity("testuser2");
+    org.exoplatform.services.security.Identity testuser2Identity = new org.exoplatform.services.security.Identity("testuser2");
     Poll poll1 = new Poll();
     poll1.setQuestion("q1");
-    poll1.setCreatedDate(startDateTime);
-    poll1.setEndDate(endDateTime);
+    poll1.setCreatedDate(createdDate);
+    poll1.setEndDate(endDate);
     poll1.setCreatorId(Long.parseLong(user2Identity.getId()));
+    poll1.setSpaceId(1L);
 
     // When
     try {
-      pollService.createPoll(poll1, pollOptionList, space.getId(), identity1);
+      pollService.createPoll(poll1, pollOptionList, space.getId(), MESSAGE, testuser2Identity);
       fail("Should fail when a non redactor member attempts to create a poll");
     } catch (IllegalAccessException e) {
       // Expected
@@ -81,15 +82,14 @@ public class PollServiceTest extends BasePollTest {
 
   @Test
   public void testGetPollById() throws IllegalAccessException {
-    ZonedDateTime startDateTime = startDate.toInstant().atZone(ZoneOffset.UTC);
-    ZonedDateTime endDateTime = endDate.toInstant().atZone(ZoneOffset.UTC);
-    org.exoplatform.services.security.Identity identity = new org.exoplatform.services.security.Identity("testuser1");
+    // Given
+    org.exoplatform.services.security.Identity testuser1Identity = new org.exoplatform.services.security.Identity("testuser1");
     Poll poll = new Poll();
     poll.setQuestion("q1");
-    poll.setCreatedDate(startDateTime);
-    poll.setEndDate(endDateTime);
+    poll.setCreatedDate(createdDate);
+    poll.setEndDate(endDate);
     poll.setCreatorId(Long.parseLong(user1Identity.getId()));
-    Poll createdPoll = new Poll(1, "q1", startDateTime, endDateTime, 1, 1);
+    poll.setSpaceId(1L);
     PollOption pollOption = new PollOption();
     pollOption.setDescription("pollOption");
     List<PollOption> options = new ArrayList<>();
@@ -99,20 +99,49 @@ public class PollServiceTest extends BasePollTest {
     spaceService.addRedactor(space, user1Identity.getRemoteId());
 
     // When
-    Poll pollStored = pollService.createPoll(poll, pollOptionList, space.getId(), identity);
-    poll = pollService.getPollById(pollStored.getId());
+    Poll createdPoll = pollService.createPoll(poll, pollOptionList, space.getId(), MESSAGE, testuser1Identity);
+    createdPoll = pollService.getPollById(createdPoll.getId(), testuser1Identity);
 
+    // Then
     assertNotNull(poll);
-    assertEquals(createdPoll.getQuestion(), poll.getQuestion());
-    assertEquals(createdPoll.getCreatedDate(), poll.getCreatedDate());
-    assertEquals(createdPoll.getEndDate(), poll.getEndDate());
-
+    assertEquals(poll.getQuestion(), createdPoll.getQuestion());
+    assertEquals(poll.getCreatedDate(), createdPoll.getCreatedDate());
+    assertEquals(poll.getEndDate(), createdPoll.getEndDate());
+    
     // When
     try {
-      pollService.getPollById(5);
-      fail("Should fail when poll doesn't exist");
-    } catch (IllegalStateException e) {
+      org.exoplatform.services.security.Identity testuser3Identity = new org.exoplatform.services.security.Identity("testuser3");
+      pollService.getPollById(createdPoll.getId(), testuser3Identity);
+      fail("Should fail when a non member attempts to get a poll");
+    } catch (IllegalAccessException e) {
       // Expected
     }
+  }
+
+  @Test
+  public void testGetPollOptionsById() throws IllegalAccessException {
+    // Given
+    org.exoplatform.services.security.Identity testuser1Identity = new org.exoplatform.services.security.Identity("testuser1");
+    Poll poll = new Poll();
+    poll.setQuestion("q1");
+    poll.setCreatedDate(createdDate);
+    poll.setEndDate(endDate);
+    poll.setCreatorId(Long.parseLong(user1Identity.getId()));
+    poll.setSpaceId(1L);
+    PollOption pollOption = new PollOption();
+    pollOption.setDescription("pollOption");
+    List<PollOption> options = new ArrayList<>();
+    options.add(pollOption);
+    List<PollOption> pollOptionList = new ArrayList<>();
+    pollOptionList.add(pollOption);
+    spaceService.addRedactor(space, user1Identity.getRemoteId());
+
+    // When
+    Poll createdPoll = pollService.createPoll(poll, pollOptionList, space.getId(), MESSAGE, testuser1Identity);
+    List<PollOption> retrievedPollOptions = pollService.getPollOptionsById(createdPoll.getId(), testuser1Identity);
+
+    // Then
+    assertNotNull(retrievedPollOptions);
+    assertEquals(1, retrievedPollOptions.size());
   }
 }

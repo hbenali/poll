@@ -19,6 +19,7 @@
 package org.exoplatform.poll.storage;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import org.exoplatform.poll.dao.PollDAO;
 import org.exoplatform.poll.dao.PollOptionDAO;
@@ -50,6 +51,17 @@ public class PollStorage {
 
   public Poll getPollById(Long pollId) {
     PollEntity pollEntity = pollDAO.find(pollId);
+    return EntityMapper.fromPollEntity(pollEntity);
+  }
+  
+  public List<PollOption> getPollOptionsById(Long pollId) {
+    List<PollOptionEntity> pollOptionEntities = pollOptionDAO.findPollOptionsById(pollId);
+    return pollOptionEntities.stream().map(EntityMapper::fromPollOptionEntity).collect(Collectors.toList());
+  }
+
+  public Poll updatePoll(Poll poll) {
+    PollEntity pollEntity = EntityMapper.toPollEntity(poll);
+    pollEntity = pollDAO.update(pollEntity);
     return EntityMapper.fromPollEntity(pollEntity);
   }
 

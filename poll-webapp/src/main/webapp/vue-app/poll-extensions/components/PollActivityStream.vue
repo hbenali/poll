@@ -21,7 +21,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
     <v-card
       class="border-color border-radius my-3 pa-5"
       outlined>
-      <poll-activity v-bind="options" @submit-vote="submitVote" />
+      <poll-activity :poll="poll" @submit-vote="submitVote" />
     </v-card>
     <div
       class="votes-remaining-state"
@@ -33,34 +33,58 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 <script> 
     
 export default {
-  data() {
-    return {
-      d1: new Date(),
-      d2: new Date('3/20/2022'),
-      options: {
-        question: 'What\'s your favourite <strong>JS</strong> framework?',
-        answers: [
-          { value: 1, text: 'Vue', votes: 53 ,selected: false, class: 'my-3' },
-          { value: 2, text: 'React', votes: 35 ,selected: false, class: 'my-3' },
-          { value: 3, text: 'Angular', votes: 30 ,selected: false, class: 'my-3' },
-          { value: 4, text: 'Other', votes: 10 ,selected: false, class: 'my-3' } 
-        ],
-        submitButtonText: 'submit',
-        showResults: false,
-        finalResults: false
-      }
-    };
-  },
-  computed: {
-    reminingTime() {
-      const days = this.$pollUtils.getRemainingDate.inDays(this.d1, this.d2);
-      const hours = this.$pollUtils.getRemainingDate.inHours(this.d1, this.d2)-this.$pollUtils.getRemainingDate.inDays(this.d1, this.d2)*24;
-      const minutes = this.$pollUtils.getRemainingDate.inMunites(this.d1, this.d2)-this.$pollUtils.getRemainingDate.inHours(this.d1, this.d2)*60;
-      return this.$t('activity.poll.remaining',{0: days, 1: hours, 2: minutes});
+  props: {
+    activity: {
+      type: Object,
+      default: null,
     },
   },
+  data: () => ({
+    poll: null
+  }),
+  computed: {
+    reminingTime() {
+      const nowDateTime = new Date().getTime();
+      const endDateTime = this.activity.poll.endDateTime;
+      const days = this.$pollUtils.getRemainingDate.inDays(nowDateTime, endDateTime);
+      const hours = this.$pollUtils.getRemainingDate.inHours(nowDateTime, endDateTime) - this.$pollUtils.getRemainingDate.inDays(nowDateTime, endDateTime)*24;
+      const minutes = this.$pollUtils.getRemainingDate.inMinutes(nowDateTime, endDateTime) - this.$pollUtils.getRemainingDate.inHours(nowDateTime, endDateTime)*60;
+      return this.$t('activity.poll.remaining',{0: days, 1: hours, 2: minutes});
+    },
+    templateParams() {
+      return this.activity && this.activity.templateParams;
+    },
+    pollId() {
+      return this.templateParams && this.templateParams.pollId;
+    },
+    activityId() {
+      return this.activity && this.activity.id;
+    },
+  },
+  created() {
+    if (this.pollId) {
+      this.retrievePoll();
+    }
+  },
   methods: {
-    submitVote(){
+    retrievePoll() {
+      if (this.activity.poll) {
+        this.poll = this.activity.poll;
+      } else {
+        this.$pollService.getPollById(this.pollId)
+          .then(poll => {
+            this.poll = poll;
+            if (!this.poll) {
+              this.$root.$emit('activity-extension-abort', this.activityId);
+            }
+            this.activity.poll = poll;
+          })
+          .catch(() => {
+            this.$root.$emit('activity-extension-abort', this.activityId);
+          });
+      }
+    },
+    submitVote() {
       return;
     }
   }

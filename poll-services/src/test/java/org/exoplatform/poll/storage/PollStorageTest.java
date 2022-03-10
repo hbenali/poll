@@ -24,8 +24,6 @@ import static org.mockito.ArgumentMatchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.time.ZoneOffset;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 
@@ -64,32 +62,13 @@ public class PollStorageTest {
   @PrepareForTest({ EntityMapper.class })
   @Test
   public void testCreatePoll() throws Exception { // NOSONAR
-    Date startDate = new Date(System.currentTimeMillis());
-    Date endDate = new Date(System.currentTimeMillis() + 1);
-    Poll poll = new Poll();
-    poll.setId(1L);
-    poll.setQuestion("q1");
-    poll.setCreatedDate(startDate.toInstant().atZone(ZoneOffset.UTC));
-    poll.setEndDate(endDate.toInstant().atZone(ZoneOffset.UTC));
-    poll.setCreatorId(1L);
+    // Given
+    Poll poll = createPoll();
+    PollOption pollOption = createPollOption(poll);
+    PollEntity pollEntity = createPollEntity();
+    PollOptionEntity pollOptionEntity = createPollOptionEntity(pollEntity);
 
-    PollOption pollOption = new PollOption();
-    pollOption.setId(1L);
-    pollOption.setPollId(poll.getId());
-    pollOption.setDescription("pollOption");
-
-    PollEntity pollEntity = new PollEntity();
-    pollEntity.setId(1L);
-    pollEntity.setQuestion("q1");
-    pollEntity.setCreatedDate(startDate);
-    pollEntity.setEndDate(endDate);
-    pollEntity.setCreatorId(1L);
-
-    PollOptionEntity pollOptionEntity = new PollOptionEntity();
-    pollOptionEntity.setPollId(pollEntity.getId());
-    pollOptionEntity.setDescription(pollOption.getDescription());
-    pollOptionEntity.setId(1L);
-
+    // When
     when(pollDAO.create(anyObject())).thenReturn(pollEntity);
     when(pollOptionDAO.create(anyObject())).thenReturn(pollOptionEntity);
     PowerMockito.mockStatic(EntityMapper.class);
@@ -98,9 +77,89 @@ public class PollStorageTest {
     when(EntityMapper.toPollOptionEntity(pollOption, pollEntity.getId())).thenReturn(pollOptionEntity);
     when(EntityMapper.fromPollOptionEntity(pollOptionEntity)).thenReturn(pollOption);
 
+    // Then
     Poll pollCreated = pollStorage.createPoll(poll, Collections.singletonList(pollOption));
     assertNotNull(pollCreated);
     assertEquals(1L, pollCreated.getId());
     assertEquals(poll, pollCreated);
+  }
+
+  @PrepareForTest({ EntityMapper.class })
+  @Test
+  public void testGetPollById() throws Exception { // NOSONAR
+    // Then
+    Poll poll = createPoll();
+    PollEntity pollEntity = createPollEntity();
+    
+    // When
+    when(pollDAO.find(anyObject())).thenReturn(pollEntity);
+    PowerMockito.mockStatic(EntityMapper.class);
+    when(EntityMapper.toPollEntity(poll)).thenReturn(pollEntity);
+    when(EntityMapper.fromPollEntity(pollEntity)).thenReturn(poll);
+
+    // Then
+    Poll retrievedPoll = pollStorage.getPollById(poll.getId());
+    assertNotNull(retrievedPoll);
+    assertEquals(retrievedPoll, poll);
+  }
+
+  @PrepareForTest({ EntityMapper.class })
+  @Test
+  public void testUpdatePoll() throws Exception { // NOSONAR
+    // Then
+    Poll poll = createPoll();
+    PollEntity pollEntity = createPollEntity();
+    poll.setActivityId(1L);
+
+    // When
+    when(pollDAO.update(anyObject())).thenReturn(pollEntity);
+    PowerMockito.mockStatic(EntityMapper.class);
+    when(EntityMapper.toPollEntity(poll)).thenReturn(pollEntity);
+    when(EntityMapper.fromPollEntity(pollEntity)).thenReturn(poll);
+
+    // Then
+    Poll updatedPoll = pollStorage.updatePoll(poll);
+    assertNotNull(updatedPoll);
+    assertEquals(1L, updatedPoll.getActivityId());
+  }
+
+  protected Poll createPoll() {
+    Date createdDate = new Date(System.currentTimeMillis());
+    Date endDate = new Date(System.currentTimeMillis() + 1);
+    Poll poll = new Poll();
+    poll.setId(1L);
+    poll.setQuestion("q1");
+    poll.setCreatedDate(createdDate);
+    poll.setEndDate(endDate);
+    poll.setCreatorId(1L);
+    return poll;
+  }
+
+  protected PollOption createPollOption(Poll poll) {
+    PollOption pollOption = new PollOption();
+    pollOption.setId(1L);
+    pollOption.setPollId(poll.getId());
+    pollOption.setDescription("pollOption description");
+    return pollOption;
+  }
+
+  protected PollEntity createPollEntity() {
+    Date createdDate = new Date(System.currentTimeMillis());
+    Date endDate = new Date(System.currentTimeMillis() + 1);
+    PollEntity pollEntity = new PollEntity();
+    pollEntity.setId(1L);
+    pollEntity.setQuestion("q1");
+    pollEntity.setCreatedDate(createdDate);
+    pollEntity.setEndDate(endDate);
+    pollEntity.setCreatorId(1L);
+    return pollEntity;
+  }
+
+  protected PollOptionEntity createPollOptionEntity(PollEntity pollEntity) {
+    PollOptionEntity pollOptionEntity = new PollOptionEntity();
+    pollOptionEntity.setPollId(pollEntity.getId());
+    pollOptionEntity.setDescription("pollOption description");
+    pollOptionEntity.setId(1L);
+    return pollOptionEntity;
   }
 }

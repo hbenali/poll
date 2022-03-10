@@ -43,16 +43,53 @@ export default {
       savedPoll: {}
     };
   },
+  props: {
+    activityId: {
+      type: String,
+      default: null,
+    },
+    message: {
+      type: String,
+      default: null,
+    },
+    maxMessageLength: {
+      type: Number,
+      default: 0,
+    },
+    templateParams: {
+      type: Object,
+      default: null,
+    },
+    files: {
+      type: Array,
+      default: null,
+    },
+    activityType: {
+      type: Array,
+      default: null,
+    },
+  },
   computed: {
-    pollActionLabel(){
+    pollActionLabel() {
       return this.$t(`composer.poll.${this.pollAction}.drawer.label`);
     },
-    pollActionDescription(){
+    pollActionDescription() {
       return this.$t(`composer.poll.${this.pollAction}.drawer.description`);
     },
-    createdPollIcon(){
+    createdPollIcon() {
       return this.pollAction === 'update' ? 'createdPollIcon' : '';
     }
+  },
+  created() {
+    document.addEventListener('post-activity', event => {
+      this.postPoll(event.detail);
+    });
+    document.addEventListener('message-composer-opened', () => {
+      if (this.pollAction === 'update') {
+        this.activityType.push('poll');
+        document.dispatchEvent(new CustomEvent('activity-composer-edited'));
+      }
+    });
   },
   methods: {
     openCreatePollDrawer() {
@@ -61,7 +98,33 @@ export default {
     createPoll(poll) {
       Object.assign(this.savedPoll, poll);
       this.pollAction = 'update';
+      this.activityType.push('poll');
       document.dispatchEvent(new CustomEvent('activity-composer-edited'));
+    },
+    postPoll(message) {
+      const poll = {
+        question: this.savedPoll.question,
+        options: this.savedPoll.options.filter(option => option.data != null)
+          .map(option => {
+            return {
+              description: option.data,
+            };
+          }),
+        duration: this.savedPoll.duration,
+        message: message
+      };
+      this.$pollService.postPoll(poll, eXo.env.portal.spaceId)
+        .then(() => {
+          document.dispatchEvent(new CustomEvent('activity-created', {detail: this.activityId}));
+          this.pollAction = 'create';
+          this.savedPoll = {};
+        })
+        .catch(error => {
+          console.error(`Error when posting message: ${error}`);
+        })
+        .finally(() => {
+          document.dispatchEvent(new CustomEvent('activity-composer-closed'));
+        });
     }
   },
 };

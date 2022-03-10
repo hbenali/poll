@@ -18,7 +18,8 @@
  */
 import {initExtensions} from './pollExtensions.js';
 import './initComponents.js';
-import * as pollUtils from './pollUtils';
+import * as pollUtils from './pollUtils.js';
+import * as pollService from './pollService.js';
 
 // getting language of the PLF
 const lang = eXo.env.portal.language || 'en';
@@ -30,6 +31,12 @@ exoi18n.loadLanguageAsync(lang, url).then(i18n => new Vue({i18n}));
 if (!Vue.prototype.$pollUtils) {
   window.Object.defineProperty(Vue.prototype, '$pollUtils', {
     value: pollUtils,
+  });
+}
+
+if (!Vue.prototype.$pollService) {
+  window.Object.defineProperty(Vue.prototype, '$pollService', {
+    value: pollService,
   });
 }
 
