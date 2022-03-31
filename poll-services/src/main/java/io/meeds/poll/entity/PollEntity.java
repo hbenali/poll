@@ -27,6 +27,7 @@ import java.util.Date;
 @Entity(name = "Poll")
 @ExoEntity
 @Table(name = "POLL")
+
 public class PollEntity implements Serializable {
 
   private static final long serialVersionUID = 5290107403575974438L;

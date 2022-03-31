@@ -76,7 +76,9 @@ public class PollServiceImpl implements PollService {
     poll.setCreatorId(currentUserIdentityId);
     poll.setSpaceId(Long.parseLong(spaceId));
     Poll createdPoll = pollStorage.createPoll(poll, pollOptions);
-    return postPollActivity(message, spaceId, currentIdentity, createdPoll, files);
+    createdPoll =  postPollActivity(message, spaceId, currentIdentity, createdPoll, files);
+    PollUtils.broadcastEvent(PollUtils.CREATE_POLL, currentIdentity.getUserId(), createdPoll);//Analytics
+    return createdPoll;
   }
 
   @Override
@@ -89,7 +91,6 @@ public class PollServiceImpl implements PollService {
     return poll;
   }
   
-
   /**
    * {@inheritDoc}
    */
@@ -114,7 +115,7 @@ public class PollServiceImpl implements PollService {
     if (!spaceService.isMember(pollSpace, currentIdentity.getUserId())) {
       throw new IllegalAccessException("User " + currentIdentity.getUserId() + " is not allowed to get options of poll with id " + pollId + " in space " + pollSpace.getId());
     }
-    return pollStorage.getPollOptionsById(pollId);
+    return pollStorage.getPollOptionsByPollId(pollId);
   }
   
   /**
@@ -137,6 +138,7 @@ public class PollServiceImpl implements PollService {
     pollVote.setVoteDate(new Date());
     pollVote = pollStorage.createPollVote(pollVote);
     updatePollActivity(String.valueOf(poll.getActivityId()));
+    PollUtils.broadcastEvent(PollUtils.VOTE_POLL, currentIdentity.getUserId(), poll);//Analytics
     return pollVote;
   }
 
@@ -163,6 +165,32 @@ public class PollServiceImpl implements PollService {
     }
     long currentUserIdentityId = PollUtils.getCurrentUserIdentityId(identityManager, currentIdentity.getUserId());
     return pollStorage.countPollOptionTotalVotesByUser(pollOptionId, currentUserIdentityId) > 0;
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int getPollOptionsNumber(long pollId, String currentUserId) throws IllegalAccessException {
+    Poll poll = pollStorage.getPollById(pollId);
+    Space pollSpace = spaceService.getSpaceById(String.valueOf(poll.getSpaceId()));
+    if (!spaceService.isMember(pollSpace, currentUserId)) {
+      throw new IllegalAccessException("User " + currentUserId + " is not allowed to get options number of poll with id " + pollId + " in space " + pollSpace.getId());
+    }
+    return pollStorage.countPollOptionsByPollId(pollId);
+  }
+
+  /**
+   * {@inheritDoc}
+   */
+  @Override
+  public int getPollTotalVotes(long pollId, String currentUserId) throws IllegalAccessException {
+    Poll poll = pollStorage.getPollById(pollId);
+    Space pollSpace = spaceService.getSpaceById(String.valueOf(poll.getSpaceId()));
+    if (!spaceService.isMember(pollSpace, currentUserId)) {
+      throw new IllegalAccessException("User " + currentUserId + " is not allowed to get total votes of poll with id " + pollId + " in space " + pollSpace.getId());
+    }
+    return pollStorage.countPollTotalVotes(pollId);
   }
   
   private Poll postPollActivity(String message,
