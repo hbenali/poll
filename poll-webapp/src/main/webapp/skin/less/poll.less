@@ -15,8 +15,8 @@
     }
     .actionItemDescription {
       .actionLabel.createdPollIcon::after {
-          content: url('@{images-path}/circle-checked.svg');
-          margin-left: 20px;
+         content: url('@{images-path}/circle-checked.svg');
+         margin-left: 20px;
       }
     }
   }
@@ -31,8 +31,8 @@
       }
     }
     select.poll-select-duration {
-        padding: 5px 5px;
-      }
+      padding: 5px 5px;
+    }
   }
 }
 
@@ -72,6 +72,9 @@
           -webkit-transition: color .2s ease-in-out;
           -moz-transition: color .2s ease-in-out;
         }
+        .vote-content-poll-creator {
+          color: white;
+        }
         &.active {
           background: @primaryColor;
           .vote-content {
@@ -96,11 +99,14 @@
           position: relative;
           z-index: 1;
         }
-        &.selected{
+        &.selected {
           .vote-content:before {
             content:'✔';
             margin-right: 10px;
           }
+        }
+        &:hover {
+          cursor: pointer;
         }
       }
       .voteAnswer {
@@ -122,6 +128,10 @@
           &.selected {
             background-color: @primaryColor;
           }
+        }
+        .voteBackgroundPollCreator {
+          height: 85%;
+          margin: 2px 2px;
         }
       }
     }

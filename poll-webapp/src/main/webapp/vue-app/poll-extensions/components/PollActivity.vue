@@ -26,18 +26,42 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
           :key="index"
           :class="{ voteAnswer: true, [answer.class]: (answer.class) }">
           <template v-if="!finalResults">
-            <div
-              v-if="!visibleResults"
-              :title="!isSpaceMember && $t('activity.poll.not.space.member')"
-              :class="{ 'answer-cant-vote': !isSpaceMember, 'answer-no-vote no-select': true, active: answer.voted }"
-              @click.prevent="handleVote(answer)">
-              <span class="vote-content" v-sanitized-html="answer.description"></span>
+            <div v-if="!visibleResults">
+              <v-progress-linear
+                v-if="isPollCreator"
+                :value="answer.percent"
+                color="transparent"
+                height="20"
+                :class="{ 'answer-voted': true, selected: answer.voted }"
+                @click.prevent="handleVote(answer)"
+                rounded>
+                <template>
+                  <div class="flex d-flex">
+                    <span
+                      v-if="answer.percent"
+                      class="vote-percent"
+                      v-text="answer.percent"></span>
+                    <span
+                      class="vote-content text-truncate"
+                      :title="answer.description"
+                      v-sanitized-html="answer.description"></span>
+                  </div>
+                </template>
+              </v-progress-linear>
+              <div
+                :style="isPollCreator && 'margin-top: -30px'"
+                :title="!isSpaceMember && $t('activity.poll.not.space.member')"
+                :class="{ 'answer-cant-vote': !isSpaceMember, 'answer-no-vote no-select': true, active: answer.voted }"
+                @click.prevent="handleVote(answer)">
+                <span
+                  :class="`vote-content ${isPollCreator && 'vote-content-poll-creator'}`" 
+                  v-sanitized-html="answer.description"></span>
+              </div>
             </div>
-
             <div v-else>
               <v-progress-linear
                 :value="answer.percent"
-                color="wight"
+                color="transparent"
                 height="20"
                 :class="{ 'answer-voted': true, selected: answer.voted }"
                 rounded>
@@ -55,13 +79,13 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
                 </template>
               </v-progress-linear>
             </div>
-            <span class="voteBackground" :style="{ width: visibleResults ? answer.percent : '0%' }"></span>
+            <span class="voteBackground voteBackgroundPollCreator" :style="{ width: (!visibleResults && isPollCreator) || visibleResults ? fixWidth(answer.percent) : '0%' }"></span>
           </template>
 
           <template v-else>
             <v-progress-linear
               :value="answer.percent"
-              color="wight"
+              color="transparent"
               height="20"
               class="answer-voted final"
               rounded>
@@ -84,7 +108,7 @@ Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
       </div>
       <div
         class="total-votes"
-        v-if="showTotalVotes && (visibleResults || finalResults)"
+        v-if="showTotalVotes && (visibleResults || finalResults || isPollCreator)"
         v-text="totalVotesFormatted">
       </div>
     </div>
@@ -118,6 +142,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    isPollCreator: {
+      type: Boolean,
+      default: false,
+    },
   },
   data() {
     return {
@@ -138,7 +166,7 @@ export default {
       return totalVotes;
     },
     totalVotesFormatted(){
-      return `${this.totalVotes} votes`;
+      return this.totalVotes === 1 ? this.$t('activity.poll.many.votes.label',{0: this.totalVotes}) : this.$t('activity.poll.single.vote.label',{0: this.totalVotes});
     },
     mostVotes() {
       let max = 0;
@@ -166,8 +194,14 @@ export default {
         return answer;
       });
     },
+    isMobile() {
+      return this.$vuetify.breakpoint.name === 'xs' || this.$vuetify.breakpoint.name === 'sm';
+    },
   },
   methods: {
+    fixWidth(percent) {
+      return `${parseFloat(percent.substring(0, percent.length-1)) - (this.isMobile ? 1 : 0.5)}%`;
+    },
     handleVote(answer) {
       if (this.isSpaceMember) {
         answer.votes ++;
